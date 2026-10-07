@@ -43,7 +43,7 @@ def _load_accounts():
 
 
 def _proxies():
-    for f in (ROOT / "proxies_webshare.txt", ROOT / "proxies.txt"):
+    for f in (ROOT / "proxies.txt"):
         if f.exists():
             lines = [l.strip() for l in f.read_text().splitlines()
                      if l.strip() and not l.startswith("#")]

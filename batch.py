@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parent
 
 
 def load_proxies(path=None):
-    cands = [Path(path)] if path else [ROOT / "proxies_webshare.txt", ROOT / "proxies.txt"]
+    cands = [Path(path)] if path else [ROOT / "proxies.txt"]
     for f in cands:
         if f and f.exists():
             lines = [l.strip() for l in f.read_text().splitlines()

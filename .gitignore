@@ -5,6 +5,5 @@ accounts.txt
 *.log
 config.toml
 proxies.txt
-proxies_webshare.txt
 screenshots/
 diag_*.py
