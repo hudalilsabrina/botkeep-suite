@@ -113,9 +113,47 @@ def cmd_workloads():
             wl = d.get("data", [])
             C.print(f"[cyan]{a['email']}[/]: {len(wl)} workload")
             for w in wl:
-                C.print(f"  - {w.get('name','?')} [{w.get('status','?')}]")
+                C.print(f"  - {w.get('name','?')} [{w.get('state', w.get('status','?'))}]")
         except Exception as e:
             C.print(f"[yellow]{a['email']}: {e}[/]")
+
+
+def cmd_deploy(name, port, runtime):
+    """Deploy server contoh (Python HTTP) ke Botkeep via API."""
+    from src import deploy as dp
+    accts = _load_accounts()
+    if not accts:
+        C.print("[yellow]Belum ada akun.[/]")
+        return
+    key = accts[0]["apikey"]
+    # server yang baca env PORT (Botkeep assign port acak) atau port tertentu
+    code = (
+        "import http.server, socketserver, os\n"
+        f"PORT = int(os.environ.get('PORT', {port or 32728}))\n"
+        "class H(http.server.BaseHTTPRequestHandler):\n"
+        "    def do_GET(self):\n"
+        "        self.send_response(200)\n"
+        "        self.send_header('Content-Type','text/plain'); self.end_headers()\n"
+        "        self.wfile.write(b'Botkeep server OK')\n"
+        "    def log_message(self,*a): pass\n"
+        "socketserver.TCPServer.allow_reuse_address = True\n"
+        "with socketserver.TCPServer(('0.0.0.0',PORT),H) as s:\n"
+        "    print('serving on', PORT, flush=True); s.serve_forever()\n"
+    )
+    C.print(f"[cyan]Deploy '{name}' (runtime {runtime})...[/]")
+    r = dp.deploy(key, name, {"/main.py": code},
+                  start_command=("python main.py" if runtime == "python" else "npm start"),
+                  port=port, runtime=runtime)
+    if r.get("error"):
+        C.print(f"[red]{r['error']}[/]")
+        return
+    C.print(f"  workload_id: {r.get('workload_id')}")
+    C.print(f"  running: {r.get('running')}")
+    dom = (r.get("domain_info", {}).get("data") or {})
+    if dom.get("hostname"):
+        C.print(f"[green]  URL: https://{dom['hostname']}[/]")
+    if r.get("upload_errors"):
+        C.print(f"[yellow]  upload errors: {r['upload_errors']}[/]")
 
 
 def cmd_probe():
@@ -138,6 +176,10 @@ def main():
     sub.add_parser("report")
     sub.add_parser("workloads")
     sub.add_parser("probe")
+    d = sub.add_parser("deploy")
+    d.add_argument("name", nargs="?", default="api-server-1")
+    d.add_argument("--port", type=int, default=None)
+    d.add_argument("--runtime", default="python")
     a = ap.parse_args()
     if a.cmd == "harvest":
         cmd_harvest(a.n, a.no_proxy)
@@ -147,6 +189,8 @@ def main():
         cmd_report()
     elif a.cmd == "workloads":
         cmd_workloads()
+    elif a.cmd == "deploy":
+        cmd_deploy(a.name, a.port, a.runtime)
     elif a.cmd == "probe":
         cmd_probe()
     else:

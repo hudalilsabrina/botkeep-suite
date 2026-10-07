@@ -66,6 +66,35 @@ Server Botkeep menolak pendaftaran kedua dari IP yang sama:
 **Wajib pakai proxy residensial** (rotating) untuk batch. Proxy datacenter
 sering ditolak; residensial berhasil.
 
+## 🚀 Deploy server (terbukti jalan)
+
+```bash
+./run.sh deploy api-server-1          # deploy server Python contoh
+./run.sh deploy myapp --port 32728    # listen di port tertentu
+```
+
+Hasil nyata: **server live di `https://xxxxx.bot-keep.xyz`** ✅
+
+### Temuan penting deploy (semua terbukti)
+
+1. **Buat workload TANPA `seedFiles`** — format `seedFiles` di `POST /workloads`
+   rewel/tidak jelas. Buat kosong dulu, upload file menyusul.
+2. **`POST /workloads/{id}/files/upload`**:
+   - `path` **HARUS diawali `/`** (mis. `/main.py`) — tanpa slash → `Invalid file path`
+   - `data` **HARUS base64** — teks mentah → `Invalid upload encoding`
+   ```python
+   {"path": "/main.py", "data": base64.b64encode(code.encode()).decode(), "overwrite": True}
+   ```
+3. **Port**: Botkeep assign **port acak** (lihat dashboard → Port, mis. `32728`).
+   Server **harus listen di port itu** (atau baca env `PORT`). Hardcode 8080 → 503.
+4. **Address**: `node1.botkeep.cloud` + port (dari dashboard).
+5. **Domain publik**: `PUT /workloads/{id}/domain {"enabled": true}`
+   → dapat `hostname` seperti `6wk3md.bot-keep.xyz` (propagasi ~20s).
+6. **Rate limit**: `POST /workloads/{id}/actions` bisa balas
+   `429 Developer API budget exceeded` — tunggu ~1 menit.
+
+Helper: `src/deploy.py` (`create_workload`, `upload_file`, `action`, `enable_domain`, `deploy`).
+
 ## Developer API
 
 Base: `https://api.botkeep.cloud/api/v1/developer`
